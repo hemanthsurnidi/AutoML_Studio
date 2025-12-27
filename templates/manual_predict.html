@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manual Prediction</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h2>Manual Prediction</h2>
+
+        <form action="/run_manual_prediction" method="POST">
+            {% for f in features %}
+            <label>{{ f }}</label>
+            <input type="number" step="any" name="{{ f }}" required>
+            {% endfor %}
+
+            <button type="submit">Predict {{ target }}</button>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

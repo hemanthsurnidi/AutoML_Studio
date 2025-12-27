@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Preprocessing Summary</title>
+</head>
+<body>
+
+    <h2>Preprocessing Completed</h2>
+
+    <p><b>Target Column:</b> {{ target }}</p>
+    <p><b>Problem Type:</b> {{ problem_type }}</p>
+
+    <h3>Feature Details</h3>
+
+    <p><b>Numerical Features:</b></p>
+    <ul>
+        {% for col in num_features %}
+            <li>{{ col }}</li>
+        {% endfor %}
+    </ul>
+
+    <p><b>Categorical Features:</b></p>
+    <ul>
+        {% for col in cat_features %}
+            <li>{{ col }}</li>
+        {% endfor %}
+    </ul>
+
+    <p><b>Final Feature Matrix Shape (after preprocessing):</b></p>
+    <p>{{ final_shape }}</p>
+
+</body>
+</html>

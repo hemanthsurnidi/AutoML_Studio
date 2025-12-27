@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Data Leakage Prevention</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #333;
+            padding: 8px 14px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Data Leakage Prevention</h2>
+
+    <p><b>Problem Type:</b> {{ problem_type }}</p>
+
+    <h3>Detected ID / Leakage-Prone Columns</h3>
+    {% if id_columns %}
+        <ul>
+            {% for col in id_columns %}
+                <li>{{ col }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No ID-like columns detected.</p>
+    {% endif %}
+
+    <h3>Model Performance</h3>
+    <table>
+        <tr>
+            <th>Metric</th>
+            <th>Before Feature Selection</th>
+            <th>After Feature Selection</th>
+        </tr>
+        <tr>
+            <td>{{ metric_name }}</td>
+            <td>{{ base_score }}</td>
+            <td>{{ new_score }}</td>
+        </tr>
+    </table>
+
+    <h3>Selected Features</h3>
+    <ul>
+        {% for f in selected_features %}
+            <li>{{ f }}</li>
+        {% endfor %}
+    </ul>
+
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Feature Importance</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #333;
+            padding: 8px 14px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Feature Importance Analysis</h2>
+
+    <p><b>Problem Type:</b> {{ problem_type }}</p>
+    <p><b>{{ metric_name }}:</b> {{ metric_value }}</p>
+
+    <table>
+        <tr>
+            <th>Feature</th>
+            <th>Importance (Absolute Coefficient)</th>
+        </tr>
+
+        {% for feature, score in feature_importance %}
+        <tr>
+            <td>{{ feature }}</td>
+            <td>{{ "%.6f"|format(score) }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+</body>
+</html>

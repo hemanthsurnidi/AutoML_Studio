@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Model Results</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #333;
+            padding: 10px 15px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Model Training Results</h2>
+    <p><b>Problem Type:</b> {{ problem_type }}</p>
+
+    <table>
+        <tr>
+            <th>Model</th>
+            {% if problem_type == "Classification" %}
+                <th>Accuracy</th>
+                <th>–</th>
+            {% else %}
+                <th>RMSE</th>
+                <th>R² Score</th>
+            {% endif %}
+        </tr>
+
+        {% for row in results %}
+        <tr>
+            <td>{{ row[0] }}</td>
+            <td>{{ row[1] }}</td>
+            <td>{{ row[2] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+</body>
+</html>

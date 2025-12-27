@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AutoML Studio</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="container">
+
+    <!-- PRIMARY ACTION: UPLOAD FIRST -->
+    <div class="card">
+        <h1>AutoML Studio</h1>
+        <p>
+            Upload your CSV file to automatically train, evaluate,
+            and understand a machine learning model.
+        </p>
+
+        <form action="/upload" method="POST" enctype="multipart/form-data">
+            <label>Select CSV file</label>
+            <input type="file" name="dataset" required>
+            <button type="submit">Upload Dataset</button>
+        </form>
+    </div>
+
+    <!-- WHAT IT IS -->
+    <div class="card">
+        <h2>What is AutoML Studio?</h2>
+        <p>
+            AutoML Studio is an intelligent machine learning application that
+            automatically builds models from your data while clearly explaining
+            every step involved.
+        </p>
+    </div>
+
+    <!-- WHAT IT DOES -->
+    <div class="card">
+        <h2>What this application does</h2>
+
+        <ul>
+            <li>📁 Accepts any CSV dataset</li>
+            <li>🎯 Lets you select the target column</li>
+            <li>🤖 Automatically detects the problem type:
+                <ul>
+                    <li>Regression (continuous values)</li>
+                    <li>Classification (categories / labels)</li>
+                </ul>
+            </li>
+            <li>🧠 Selects the appropriate Random Forest model</li>
+            <li>📊 Trains and evaluates the model</li>
+            <li>🔍 Explains preprocessing and feature importance</li>
+            <li>✍️ Allows manual prediction using the trained model</li>
+        </ul>
+    </div>
+
+    <!-- WHY TRUST -->
+    <div class="card">
+        <h2>Why AutoML Studio is trustworthy</h2>
+
+        <ul>
+            <li>✅ No black-box behavior</li>
+            <li>✅ Every preprocessing step is shown</li>
+            <li>✅ Model choice is explained</li>
+            <li>✅ Feature importance is visualized</li>
+            <li>✅ Designed for correctness over hype</li>
+        </ul>
+    </div>
+
+    <!-- SUPPORTED PROBLEMS -->
+    <div class="card">
+        <h2>Supported problem types</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Problem Type</th>
+                    <th>Status</th>
+                    <th>Examples</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Regression</td>
+                    <td>✅ Supported</td>
+                    <td>Price, visibility, sales, temperature</td>
+                </tr>
+                <tr>
+                    <td>Classification</td>
+                    <td>✅ Supported</td>
+                    <td>Spam detection, medical diagnosis</td>
+                </tr>
+                <tr>
+                    <td>Clustering</td>
+                    <td>❌ Not supported</td>
+                    <td>Planned for future versions</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <div class="card">
+        <h2>How it works</h2>
+
+        <ol>
+            <li>Upload a CSV file</li>
+            <li>Review dataset summary</li>
+            <li>Select the target column</li>
+            <li>Model is trained automatically</li>
+            <li>Review metrics, steps, and feature importance</li>
+            <li>Run manual predictions</li>
+        </ol>
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dataset Overview</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h2>Dataset Overview</h2>
+        <p><b>Rows:</b> {{ rows }} &nbsp; | &nbsp; <b>Columns:</b> {{ cols }}</p>
+
+        <h3>Column Summary</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Column</th>
+                    <th>Data Type</th>
+                    <th>Missing Values</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c,d,m in column_info %}
+                <tr>
+                    <td>{{ c }}</td>
+                    <td>{{ d }}</td>
+                    <td>{{ m }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h3>Select Target Column</h3>
+        <form action="/select_target" method="POST">
+            <input type="hidden" name="filename" value="{{ filename }}">
+            <select name="target" required>
+                {% for c,_,_ in column_info %}
+                <option value="{{ c }}">{{ c }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Train Model</button>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

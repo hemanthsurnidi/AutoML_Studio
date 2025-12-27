@@ -1,0 +1,150 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 40px;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: linear-gradient(120deg, #eef2ff, #f8fafc);
+    color: #1f2937;
+}
+
+.container {
+    max-width: 1100px;
+    margin: auto;
+}
+
+.card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 32px;
+    margin-bottom: 30px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* Headings */
+h1 {
+    font-size: 32px;
+    margin-bottom: 10px;
+}
+
+h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+h3 {
+    margin-top: 30px;
+    font-size: 18px;
+    border-left: 4px solid #6366f1;
+    padding-left: 10px;
+}
+
+/* Text */
+p {
+    color: #475569;
+    line-height: 1.6;
+}
+
+/* Forms */
+form {
+    margin-top: 20px;
+}
+
+label {
+    font-weight: 600;
+    margin-top: 15px;
+    display: block;
+}
+
+input[type="file"],
+input[type="number"],
+select {
+    width: 100%;
+    padding: 12px;
+    margin-top: 6px;
+    border-radius: 8px;
+    border: 1px solid #c7d2fe;
+    font-size: 15px;
+}
+
+input:focus,
+select:focus {
+    outline: none;
+    border-color: #6366f1;
+}
+
+/* Buttons */
+button {
+    margin-top: 20px;
+    padding: 12px 22px;
+    background: #6366f1;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #4f46e5;
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+thead {
+    background: #eef2ff;
+}
+
+th, td {
+    padding: 14px 12px;
+    text-align: left;
+}
+
+th {
+    font-weight: 700;
+    color: #1e293b;
+    border-bottom: 2px solid #c7d2fe;
+}
+
+td {
+    border-bottom: 1px solid #e5e7eb;
+}
+
+tr:hover {
+    background: #f8fafc;
+}
+
+/* Lists */
+ol {
+    margin-top: 15px;
+    padding-left: 20px;
+}
+
+ol li {
+    margin-bottom: 8px;
+}
+
+/* Footer actions */
+.actions {
+    margin-top: 30px;
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+ul {
+    margin-top: 10px;
+    padding-left: 20px;
+}
+
+ul li {
+    margin-bottom: 8px;
+}
+
