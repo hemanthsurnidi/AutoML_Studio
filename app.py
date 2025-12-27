@@ -35,9 +35,7 @@ def upload():
     file.save(path)
 
     df = pd.read_csv(path)
-
     DATA_STORE["df"] = df
-    DATA_STORE["filename"] = file.filename
 
     summary = []
     for col in df.columns:
@@ -60,23 +58,32 @@ def select_target():
     df = DATA_STORE.get("df")
     target = request.form.get("target")
 
+    processing_steps = []
+    processing_steps.append("Dataset loaded successfully")
+    processing_steps.append(f"Target column selected: {target}")
+
     y = df[target]
     X = df.drop(columns=[target])
 
     X = X.select_dtypes(include=["int64", "float64"])
+    processing_steps.append("Selected numerical features only")
 
     problem_type = "classification" if y.dtype == "object" or y.nunique() <= 15 else "regression"
+    processing_steps.append(f"Detected problem type: {problem_type}")
 
     preprocess = Pipeline([
         ("imputer", SimpleImputer(strategy="median")),
         ("scaler", StandardScaler())
     ])
+    processing_steps.append("Missing values handled using median")
+    processing_steps.append("Features scaled using StandardScaler")
 
     X_processed = preprocess.fit_transform(X)
 
     X_train, X_test, y_train, y_test = train_test_split(
         X_processed, y, test_size=0.2, random_state=42
     )
+    processing_steps.append("Dataset split into training and testing sets")
 
     if problem_type == "classification":
         model = RandomForestClassifier(
@@ -89,6 +96,7 @@ def select_target():
         preds = model.predict(X_test)
         score = accuracy_score(y_test, preds)
         metric = "Accuracy"
+        processing_steps.append("RandomForestClassifier trained")
     else:
         model = RandomForestRegressor(
             n_estimators=50,
@@ -100,6 +108,21 @@ def select_target():
         preds = model.predict(X_test)
         score = np.sqrt(mean_squared_error(y_test, preds))
         metric = "RMSE"
+        processing_steps.append("RandomForestRegressor trained")
+
+    # Feature importance
+    importances = model.feature_importances_
+    total = importances.sum()
+
+    feature_importance = []
+    for feature, imp in zip(X.columns, importances):
+        feature_importance.append({
+            "feature": feature,
+            "importance": round(imp, 4),
+            "contribution": round((imp / total) * 100, 2)
+        })
+
+    processing_steps.append("Feature importance calculated")
 
     bundle = {
         "model": model,
@@ -110,12 +133,15 @@ def select_target():
     }
 
     joblib.dump(bundle, os.path.join(MODEL_FOLDER, "model.pkl"))
+    processing_steps.append("Final trained model saved")
 
     return render_template(
         "model_ready.html",
         metric=metric,
         score=round(score, 4),
-        problem_type=problem_type
+        problem_type=problem_type,
+        processing_steps=processing_steps,
+        feature_importance=feature_importance
     )
 
 @app.route("/manual_predict")

@@ -1,49 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Model Ready</title>
+    <title>Model Training Complete</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
 <div class="container">
-    <div class="card">
-        <h2>Model Training Complete</h2>
-        <p><b>{{ metric }}:</b> {{ score }}</p>
+    <h1>Model Training Complete</h1>
 
-        <h3>Processing Steps</h3>
-        <ol>
-            {% for s in steps %}
-            <li>{{ s }}</li>
+    <p><b>{{ metric }}:</b> {{ score }}</p>
+
+    <h2>Processing Steps</h2>
+    <ul>
+        {% for step in processing_steps %}
+            <li>{{ step }}</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Feature Importance</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Feature</th>
+                <th>Importance</th>
+                <th>Contribution (%)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in feature_importance %}
+            <tr>
+                <td>{{ row.feature }}</td>
+                <td>{{ row.importance }}</td>
+                <td>{{ row.contribution }}</td>
+            </tr>
             {% endfor %}
-        </ol>
+        </tbody>
+    </table>
 
-        <h3>Feature Importance</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Feature</th>
-                    <th>Importance</th>
-                    <th>Contribution</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for f in feature_importance %}
-                <tr>
-                    <td>{{ f.feature }}</td>
-                    <td>{{ f.importance }}</td>
-                    <td>{{ f.contribution }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <div class="actions">
-            <a href="/manual_predict">
-                <button>Manual Prediction</button>
-            </a>
-        </div>
-    </div>
+    <br>
+    <a href="/manual_predict">
+        <button>Manual Prediction</button>
+    </a>
 </div>
 
 </body>
