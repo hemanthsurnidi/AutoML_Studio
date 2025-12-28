@@ -59,14 +59,14 @@ def select_target():
     target = request.form.get("target")
 
     processing_steps = []
-    processing_steps.append("Dataset loaded successfully")
-    processing_steps.append(f"Target column selected: {target}")
+    processing_steps.append("Dataset loaded")
+    processing_steps.append(f"Target selected: {target}")
 
     y = df[target]
     X = df.drop(columns=[target])
-
     X = X.select_dtypes(include=["int64", "float64"])
-    processing_steps.append("Selected numerical features only")
+
+    processing_steps.append("Selected numeric features")
 
     problem_type = "classification" if y.dtype == "object" or y.nunique() <= 15 else "regression"
     processing_steps.append(f"Detected problem type: {problem_type}")
@@ -75,54 +75,46 @@ def select_target():
         ("imputer", SimpleImputer(strategy="median")),
         ("scaler", StandardScaler())
     ])
-    processing_steps.append("Missing values handled using median")
-    processing_steps.append("Features scaled using StandardScaler")
 
     X_processed = preprocess.fit_transform(X)
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X_processed, y, test_size=0.2, random_state=42
+        X_processed, y, test_size=0.25, random_state=42
     )
-    processing_steps.append("Dataset split into training and testing sets")
 
     if problem_type == "classification":
         model = RandomForestClassifier(
-            n_estimators=50,
-            max_depth=10,
+            n_estimators=20,
+            max_depth=6,
             random_state=42,
-            n_jobs=-1
+            n_jobs=1
         )
         model.fit(X_train, y_train)
         preds = model.predict(X_test)
         score = accuracy_score(y_test, preds)
         metric = "Accuracy"
-        processing_steps.append("RandomForestClassifier trained")
     else:
         model = RandomForestRegressor(
-            n_estimators=50,
-            max_depth=10,
+            n_estimators=20,
+            max_depth=6,
             random_state=42,
-            n_jobs=-1
+            n_jobs=1
         )
         model.fit(X_train, y_train)
         preds = model.predict(X_test)
         score = np.sqrt(mean_squared_error(y_test, preds))
         metric = "RMSE"
-        processing_steps.append("RandomForestRegressor trained")
 
-    # Feature importance
     importances = model.feature_importances_
     total = importances.sum()
 
     feature_importance = []
-    for feature, imp in zip(X.columns, importances):
+    for f, imp in zip(X.columns, importances):
         feature_importance.append({
-            "feature": feature,
+            "feature": f,
             "importance": round(imp, 4),
             "contribution": round((imp / total) * 100, 2)
         })
-
-    processing_steps.append("Feature importance calculated")
 
     bundle = {
         "model": model,
@@ -133,7 +125,6 @@ def select_target():
     }
 
     joblib.dump(bundle, os.path.join(MODEL_FOLDER, "model.pkl"))
-    processing_steps.append("Final trained model saved")
 
     return render_template(
         "model_ready.html",
@@ -147,36 +138,22 @@ def select_target():
 @app.route("/manual_predict")
 def manual_predict():
     bundle = joblib.load(os.path.join(MODEL_FOLDER, "model.pkl"))
-    return render_template(
-        "manual_predict.html",
-        features=bundle["features"],
-        target=bundle["target"]
-    )
+    return render_template("manual_predict.html", features=bundle["features"])
 
 @app.route("/run_manual_prediction", methods=["POST"])
 def run_manual_prediction():
     bundle = joblib.load(os.path.join(MODEL_FOLDER, "model.pkl"))
 
-    data = {}
-    for feature in bundle["features"]:
-        data[feature] = float(request.form.get(feature))
-
+    data = {f: float(request.form.get(f)) for f in bundle["features"]}
     df = pd.DataFrame([data])
     X = bundle["preprocess"].transform(df)
     prediction = bundle["model"].predict(X)[0]
 
-    return render_template(
-        "manual_result.html",
-        prediction=prediction,
-        target=bundle["target"]
-    )
+    return render_template("manual_result.html", prediction=prediction)
 
 @app.route("/download_model")
 def download_model():
-    return send_file(
-        os.path.join(MODEL_FOLDER, "model.pkl"),
-        as_attachment=True
-    )
+    return send_file(os.path.join(MODEL_FOLDER, "model.pkl"), as_attachment=True)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
