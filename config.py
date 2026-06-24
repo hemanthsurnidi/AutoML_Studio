@@ -10,6 +10,10 @@ class Config:
     MODEL_FOLDER = os.path.join(BASE_DIR, "saved_models")
     MAX_CONTENT_LENGTH = 100 * 1024 * 1024  # 100 MB upload limit
     ALLOWED_EXTENSIONS = {"csv"}
+    
+    # Required for Hugging Face Spaces iframe embedding
+    SESSION_COOKIE_SAMESITE = "None"
+    SESSION_COOKIE_SECURE = True
 
     @staticmethod
     def init_app(app):
