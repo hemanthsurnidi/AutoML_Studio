@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+{% set current_step = 7 %}
+
+{% block title %}Results Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1>Results <span class="gradient-text">Dashboard</span></h1>
+    <p>
+      <span class="badge badge-accent">{{ problem_type | capitalize }}</span>
+      {% if target %}&nbsp;·&nbsp; Target: <strong>{{ target }}</strong>{% endif %}
+      &nbsp;·&nbsp; {{ total_models }} model{{ 's' if total_models != 1 else '' }} trained
+    </p>
+  </div>
+  <div class="page-actions">
+    <a href="/predict" class="btn btn-secondary btn-sm">🎯 Predict</a>
+    <a href="/export" class="btn btn-primary btn-sm">📦 Export</a>
+  </div>
+</div>
+
+<!-- ══ Best Model Highlight ══ -->
+{% if best_model %}
+<div class="card card-accent mb-6">
+  <div class="flex items-center gap-3 mb-4" style="flex-wrap:wrap;">
+    <span style="font-size:1.8rem;">🏆</span>
+    <div>
+      <h2 class="mb-1" style="font-size:1.2rem;">Best Model: {{ best_model.model }}</h2>
+      <p class="text-secondary" style="font-size:0.78rem;">
+        Ranked by
+        {% if problem_type == 'classification' %}F1 Score
+        {% elif problem_type == 'regression' %}R² Score
+        {% else %}Silhouette Score{% endif %}
+      </p>
+    </div>
+    {% if best_model.cv_mean %}
+    <span class="badge badge-success" style="margin-left:auto;">
+      CV {{ best_model.cv_mean }} ± {{ best_model.cv_std }}
+    </span>
+    {% endif %}
+  </div>
+
+  <div class="metrics-grid">
+    {% if problem_type == 'classification' %}
+      {% for key, label, color in [
+        ('accuracy','Accuracy','var(--accent-light)'),
+        ('precision','Precision','var(--info)'),
+        ('recall','Recall','var(--warning)'),
+        ('f1','F1 Score','var(--success)'),
+        ('roc_auc','ROC-AUC','#c4b5fd'),
+      ] %}
+      <div class="metric-card">
+        <div class="metric-value" style="color:{{ color }}">{{ best_model[key] }}</div>
+        <div class="metric-label">{{ label }}</div>
+      </div>
+      {% endfor %}
+    {% elif problem_type == 'regression' %}
+      {% for key, label, color in [
+        ('mae','MAE','var(--info)'),
+        ('mse','MSE','var(--warning)'),
+        ('rmse','RMSE','var(--error)'),
+        ('r2','R²','var(--success)'),
+      ] %}
+      <div class="metric-card">
+        <div class="metric-value" style="color:{{ color }}">{{ best_model[key] }}</div>
+        <div class="metric-label">{{ label }}</div>
+      </div>
+      {% endfor %}
+    {% else %}
+      {% for key, label, color in [
+        ('silhouette','Silhouette','var(--success)'),
+        ('davies_bouldin','Davies-Bouldin','var(--warning)'),
+        ('n_clusters_found','Clusters','var(--accent-light)'),
+      ] %}
+      <div class="metric-card">
+        <div class="metric-value" style="color:{{ color }}">{{ best_model.get(key, '—') }}</div>
+        <div class="metric-label">{{ label }}</div>
+      </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ══ Tabs ══ -->
+<div class="tabs" role="tablist">
+  <button class="tab-btn active" data-tab="comparison" role="tab">📊 Comparison</button>
+  <button class="tab-btn" data-tab="charts" role="tab">📈 Charts</button>
+  <button class="tab-btn" data-tab="features" role="tab">🔍 Features</button>
+  {% if problem_type == 'classification' %}
+  <button class="tab-btn" data-tab="confusion" role="tab">🎯 Confusion</button>
+  {% endif %}
+  <button class="tab-btn" data-tab="steps" role="tab">🔧 Pipeline Log</button>
+</div>
+
+<!-- ── Comparison Tab ── -->
+<div class="tab-panel active" data-tab="comparison" role="tabpanel">
+  <div class="card mb-4">
+    <h2 class="mb-4">Model Comparison</h2>
+    <span class="table-scroll-hint">← Scroll to see all metrics →</span>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Model</th>
+            {% if problem_type == 'classification' %}
+            <th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1</th><th>ROC-AUC</th>
+            {% elif problem_type == 'regression' %}
+            <th>MAE</th><th>MSE</th><th>RMSE</th><th>R²</th>
+            {% else %}
+            <th>Silhouette ↑</th><th>Davies-Bouldin ↓</th><th>Clusters</th>
+            {% endif %}
+            <th>CV Score</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in trained_results %}
+          <tr {% if loop.first %}class="table-best"{% endif %}>
+            <td style="font-weight:700; color:{% if loop.first %}var(--accent-light){% else %}var(--text-muted){% endif %};">
+              {% if loop.first %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}{{ loop.index }}{% endif %}
+            </td>
+            <td style="font-weight:600; color:var(--text-primary);">{{ r.model }}</td>
+            {% if problem_type == 'classification' %}
+            <td>{{ r.accuracy }}</td>
+            <td>{{ r.precision }}</td>
+            <td>{{ r.recall }}</td>
+            <td style="font-weight:700; color:var(--success);">{{ r.f1 }}</td>
+            <td>{{ r.roc_auc }}</td>
+            {% elif problem_type == 'regression' %}
+            <td>{{ r.mae }}</td>
+            <td>{{ r.mse }}</td>
+            <td>{{ r.rmse }}</td>
+            <td style="font-weight:700; color:var(--success);">{{ r.r2 }}</td>
+            {% else %}
+            <td style="font-weight:700; color:var(--success);">{{ r.silhouette or '—' }}</td>
+            <td>{{ r.davies_bouldin or '—' }}</td>
+            <td>{{ r.n_clusters_found or '—' }}</td>
+            {% endif %}
+            <td style="font-size:0.78rem;">
+              {% if r.cv_mean %}{{ r.cv_mean }} ± {{ r.cv_std }}{% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td style="font-size:0.78rem;">{{ r.train_time }}s</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">
+      Model Score —
+      {% if problem_type == 'classification' %}F1
+      {% elif problem_type == 'regression' %}R²
+      {% else %}Silhouette{% endif %}
+    </div>
+    <div class="chart-container" style="height:220px;">
+      <canvas id="comparison-chart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ── Charts Tab ── -->
+<div class="tab-panel" data-tab="charts" role="tabpanel">
+  <div class="grid-2 mb-4">
+    <div class="chart-card">
+      <div class="chart-title">Missing Values by Column</div>
+      <div class="chart-container" style="height:200px;">
+        <canvas id="missing-chart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Distribution — First Numeric Column</div>
+      <div class="chart-container" style="height:200px;">
+        <canvas id="dist-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">Correlation Matrix</div>
+    <div id="corr-heatmap" style="overflow-x:auto; margin-top:8px;"></div>
+  </div>
+</div>
+
+<!-- ── Feature Importance Tab ── -->
+<div class="tab-panel" data-tab="features" role="tabpanel">
+  {% if feature_importance %}
+  <div class="chart-card mb-4">
+    <div class="chart-title">Feature Importances (Best Model)</div>
+    <div class="chart-container" style="height:360px;">
+      <canvas id="fi-chart"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="mb-4">Feature Importance Table</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Feature</th><th>Importance</th><th>Contribution</th></tr>
+        </thead>
+        <tbody>
+          {% for f in feature_importance %}
+          <tr>
+            <td class="text-muted">{{ loop.index }}</td>
+            <td style="font-weight:600; color:var(--text-primary);">{{ f.feature }}</td>
+            <td>{{ f.importance }}</td>
+            <td>
+              <div style="display:flex; align-items:center; gap:8px; min-width:120px;">
+                <div style="flex:1; height:5px; background:var(--bg-card); border-radius:3px; overflow:hidden;">
+                  <div style="width:{{ f.contribution }}%; height:100%;
+                              background:linear-gradient(90deg, var(--accent), var(--accent-light)); border-radius:3px;"></div>
+                </div>
+                <span style="font-size:0.76rem; min-width:38px; text-align:right;">{{ f.contribution }}%</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="card text-center" style="padding:48px;">
+    <p class="text-muted">Feature importance not available for this model type.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── Confusion Matrix Tab ── -->
+{% if problem_type == 'classification' %}
+<div class="tab-panel" data-tab="confusion" role="tabpanel">
+  <div id="confusion-matrices-container">
+    <p class="text-muted" style="padding:20px;">Rendering confusion matrices…</p>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Pipeline Log Tab ── -->
+<div class="tab-panel" data-tab="steps" role="tabpanel">
+  <div class="card">
+    <h2 class="mb-4">Preprocessing Steps Applied</h2>
+    {% if global_steps_log %}
+    <ol style="padding-left:18px; line-height:2.2;">
+      {% for step in global_steps_log %}
+      <li style="color:var(--text-secondary); font-size:0.86rem;">
+        <span class="text-success">✓</span> {{ step }}
+      </li>
+      {% endfor %}
+    </ol>
+    {% else %}
+    <p class="text-muted">No global preprocessing steps logged.</p>
+    {% endif %}
+
+    <div class="divider"></div>
+    <h3 class="mb-3">Features Used ({{ feature_names | length }})</h3>
+    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+      {% for f in feature_names %}
+      <span class="badge badge-accent">{{ f }}</span>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ══ Navigation ══ -->
+<div class="flex gap-3 mt-6" style="flex-wrap:wrap;">
+  <a href="/configure" class="btn btn-ghost btn-sm">← Reconfigure</a>
+  <a href="/predict" class="btn btn-secondary btn-sm">🎯 Make Predictions</a>
+  <a href="/export" class="btn btn-primary btn-sm">📦 Export Results →</a>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const fiData        = {{ fi_chart_json | safe }};
+const corrData      = {{ corr_data_json | safe }};
+const missingData   = {{ missing_data_json | safe }};
+const distData      = {{ dist_data_json | safe }};
+const confData      = {{ confusion_matrices_json | safe }};
+const trainResults  = {{ trained_results | tojson | safe }};
+const problemType   = {{ problem_type | tojson | safe }};
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderFeatureImportanceChart('fi-chart', fiData);
+  renderMissingChart('missing-chart', missingData);
+  renderDistributionChart('dist-chart', distData);
+
+  const metricKey   = problemType === 'classification' ? 'f1' : problemType === 'regression' ? 'r2' : 'silhouette';
+  const metricLabel = problemType === 'classification' ? 'F1 Score' : problemType === 'regression' ? 'R² Score' : 'Silhouette';
+  renderComparisonChart('comparison-chart', trainResults, metricKey, metricLabel);
+
+  renderCorrHeatmap(corrData);
+
+  if (problemType === 'classification' && confData.length) {
+    const container = document.getElementById('confusion-matrices-container');
+    if (container) {
+      let html = '<div class="grid-2">';
+      confData.forEach((cm, i) => {
+        html += `<div class="chart-card"><div class="chart-title">${cm.model}</div><div id="cm-${i}"></div></div>`;
+      });
+      html += '</div>';
+      container.innerHTML = html;
+      confData.forEach((cm, i) => renderConfusionMatrix(`cm-${i}`, cm));
+    }
+  }
+});
+
+function renderCorrHeatmap(data) {
+  const container = document.getElementById('corr-heatmap');
+  if (!container || !data?.labels?.length) {
+    if (container) container.innerHTML = '<p class="text-muted" style="padding:16px; font-size:0.82rem;">No numeric correlation data available.</p>';
+    return;
+  }
+  const labels = data.labels;
+  const n = labels.length;
+  if (n === 0) return;
+
+  const map = {};
+  data.values.forEach(d => { map[`${d.y}|${d.x}`] = d.v; });
+
+  const cs = Math.max(28, Math.min(54, Math.floor(660 / n)));
+  const fs = Math.max(7, Math.min(10, cs / 4.5));
+
+  let html = `<div style="overflow-x:auto;"><table style="border-collapse:separate;border-spacing:2px;margin:auto;">`;
+  html += `<tr><td style="width:${cs}px;"></td>`;
+  labels.forEach(l => {
+    html += `<td style="font-size:${fs}px;color:#a0a0c8;font-weight:700;text-align:center;padding:2px;
+                        max-width:${cs}px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.substring(0, 8)}</td>`;
+  });
+  html += '</tr>';
+
+  labels.forEach(row => {
+    html += `<tr><td style="font-size:${fs}px;color:#a0a0c8;font-weight:700;white-space:nowrap;padding-right:4px;
+                             max-width:80px;overflow:hidden;text-overflow:ellipsis;">${row.substring(0, 10)}</td>`;
+    labels.forEach(col => {
+      const v = map[`${row}|${col}`] ?? 0;
+      const abs = Math.abs(v);
+      const bg = v >= 0
+        ? `rgba(124,111,255,${0.08 + abs * 0.78})`
+        : `rgba(239,68,68,${abs * 0.6})`;
+      const txt = abs > 0.45 ? 'white' : '#a0a0c8';
+      html += `<td title="${row} vs ${col}: ${v.toFixed(3)}"
+                  style="width:${cs}px;height:${cs}px;background:${bg};border-radius:3px;text-align:center;
+                         font-size:${fs - 1}px;font-weight:600;color:${txt};cursor:default;">
+                  ${n <= 10 ? v.toFixed(2) : ''}
+               </td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</table></div>';
+  container.innerHTML = html;
+}
+</script>
+{% endblock %}

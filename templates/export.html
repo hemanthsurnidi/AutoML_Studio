@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% set current_step = 9 %}
+
+{% block title %}Export{% endblock %}
+
+{% block content %}
+<div class="page-header flex items-center justify-between">
+  <div>
+    <h1><span class="gradient-text">Export</span> Results</h1>
+    <p>Download everything you need to deploy and document your model.</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="/predict" class="btn btn-ghost">← Predictions</a>
+    <a href="/" class="btn btn-ghost">🏠 New Session</a>
+  </div>
+</div>
+
+<div class="export-grid">
+
+  <!-- Trained Model -->
+  <div class="export-card" style="border-color: {% if has_model %}var(--border-accent){% else %}var(--border){% endif %};">
+    <span class="export-icon">🤖</span>
+    <div>
+      <h3>Trained Model</h3>
+      <span class="badge badge-accent" style="font-size:0.72rem;">automl_model.pkl</span>
+    </div>
+    <p>
+      The best-performing {{ problem_type }} model saved as a joblib pickle file.
+      Load and use it directly in Python with <code>joblib.load()</code>.
+    </p>
+    {% if has_model %}
+    <a href="/export/model" class="btn btn-primary">⬇ Download Model (.pkl)</a>
+    {% else %}
+    <button class="btn btn-ghost" disabled>No model available</button>
+    {% endif %}
+  </div>
+
+  <!-- Preprocessing Pipeline -->
+  <div class="export-card">
+    <span class="export-icon">🔧</span>
+    <div>
+      <h3>Preprocessing Pipeline</h3>
+      <span class="badge badge-accent" style="font-size:0.72rem;">automl_pipeline.pkl</span>
+    </div>
+    <p>
+      The fitted ColumnTransformer pipeline that preprocesses raw input data.
+      Apply to new data before prediction to ensure consistency.
+    </p>
+    {% if has_model %}
+    <a href="/export/pipeline" class="btn btn-secondary">⬇ Download Pipeline (.pkl)</a>
+    {% else %}
+    <button class="btn btn-ghost" disabled>No pipeline available</button>
+    {% endif %}
+  </div>
+
+  <!-- Predictions CSV -->
+  <div class="export-card">
+    <span class="export-icon">📊</span>
+    <div>
+      <h3>Predictions CSV</h3>
+      <span class="badge badge-accent" style="font-size:0.72rem;">predictions.csv</span>
+    </div>
+    <p>
+      The batch prediction results with the original data plus a
+      <code>{{ target }}_predicted</code> column appended.
+      Only available after running batch prediction.
+    </p>
+    {% if has_batch %}
+    <a href="/export/predictions" class="btn btn-secondary">⬇ Download Predictions (.csv)</a>
+    {% else %}
+    <div>
+      <button class="btn btn-ghost" disabled style="margin-bottom:8px;">No batch predictions yet</button>
+      <br>
+      <a href="/predict" class="btn btn-ghost btn-sm">→ Go to Predictions</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- PDF Report -->
+  <div class="export-card">
+    <span class="export-icon">📄</span>
+    <div>
+      <h3>PDF Report</h3>
+      <span class="badge badge-accent" style="font-size:0.72rem;">automl_report.pdf</span>
+    </div>
+    <p>
+      A comprehensive PDF report including dataset summary, preprocessing steps applied,
+      all model results and metrics in a formatted, printable document.
+    </p>
+    {% if has_model %}
+    <a href="/export/report" class="btn btn-secondary">📄 Generate & Download Report</a>
+    {% else %}
+    <button class="btn btn-ghost" disabled>No training results</button>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Usage example -->
+<div class="card mt-6" style="background:rgba(0,0,0,0.25);">
+  <h2 class="mb-4">How to Use Your Exported Model in Python</h2>
+  <pre style="background:rgba(0,0,0,0.4); border:1px solid var(--border); border-radius:var(--radius-md); padding:20px; font-size:0.82rem; color:var(--info); overflow-x:auto; line-height:1.8;"><code>import joblib
+import pandas as pd
+
+# Load the bundle
+bundle = joblib.load("automl_model.pkl")
+
+model = bundle["model"]
+ct = bundle["column_transformer"]
+feature_names = bundle["feature_names"]
+label_encoder = bundle.get("label_encoder")  # Classification only
+
+# Prepare your new data (must have the same columns as training)
+new_data = pd.DataFrame([{
+{% for f in [] %}    "{{ f }}": ...,
+{% endfor %}    # ... your feature values here
+}])
+
+# Apply the same preprocessing
+X = ct.transform(new_data)
+
+# Predict
+prediction = model.predict(X)[0]
+
+# Decode label for classification
+if label_encoder:
+    prediction = label_encoder.inverse_transform([int(prediction)])[0]
+
+print("Prediction:", prediction)
+</code></pre>
+</div>
+
+{% endblock %}

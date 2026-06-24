@@ -1,0 +1,1 @@
+{"csv_path": "C:\\Users\\heman\\OneDrive\\Documents\\AutoML_Studio\\uploads\\8859e7e61cda420ebe4d631d0a81e276_test.csv", "original_filename": "test.csv", "rows": 4, "cols": 4, "columns": ["age", "income", "gender", "bought"], "col_types": {"age": "numerical", "income": "numerical", "gender": "categorical", "bought": "categorical"}, "duplicate_count": 0}

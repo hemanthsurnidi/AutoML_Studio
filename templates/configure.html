@@ -1,0 +1,721 @@
+{% extends "base.html" %}
+{% set current_step = 3 %}
+
+{% block title %}Configure Pipeline{% endblock %}
+
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1>Configure <span class="gradient-text">Pipeline</span></h1>
+    <p>Set up your ML workflow — step by step.</p>
+  </div>
+  <div class="page-actions">
+    <a href="/dataset_info" class="btn btn-ghost btn-sm">← Dataset</a>
+  </div>
+</div>
+
+<!-- ══ Wizard Step Indicators ══ -->
+<div class="wizard-steps" id="wizard-steps">
+  {% set wsteps = [
+    (1, '2', 'Problem', '🎯'),
+    (2, '3', 'Preprocess', '⚙️'),
+    (3, '4', 'Features', '🔍'),
+    (4, '5', 'Split', '✂️'),
+    (5, '6', 'Models', '🤖'),
+  ] %}
+  {% for idx, num, label, icon in wsteps %}
+  <button type="button" class="ws-step {% if idx == 1 %}active{% endif %}"
+          data-step="{{ idx }}" onclick="wizardJump({{ idx }})">
+    <span class="ws-num">{{ num }}</span>
+    <span class="ws-icon">{{ icon }}</span>
+    <span class="ws-label">{{ label }}</span>
+  </button>
+  {% if not loop.last %}
+  <div class="ws-line"></div>
+  {% endif %}
+  {% endfor %}
+</div>
+
+<form action="/configure" method="POST" id="configure-form" novalidate>
+
+<!-- ══════════════════════════════════════════════
+     WIZARD PANEL 1 — Problem Type (Step 2)
+     ══════════════════════════════════════════════ -->
+<div class="wizard-panel active" data-panel="1">
+  <div class="card mb-4">
+    <div class="wizard-panel-header">
+      <span class="wizard-step-badge">Step 2</span>
+      <h2>Problem Type</h2>
+      <p class="text-secondary" style="font-size:0.85rem; margin-top:4px;">Choose the type of ML problem and the target column.</p>
+    </div>
+
+    <div class="problem-type-grid mb-5" style="margin-top:20px;">
+      <label class="problem-card selected" for="pt-classification">
+        <input type="radio" name="problem_type" value="classification" id="pt-classification" checked>
+        <span class="problem-icon">🎯</span>
+        <div class="problem-name">Classification</div>
+        <div class="problem-desc">Predict a category or class label</div>
+      </label>
+      <label class="problem-card" for="pt-regression">
+        <input type="radio" name="problem_type" value="regression" id="pt-regression">
+        <span class="problem-icon">📈</span>
+        <div class="problem-name">Regression</div>
+        <div class="problem-desc">Predict a continuous numeric value</div>
+      </label>
+      <label class="problem-card" for="pt-clustering">
+        <input type="radio" name="problem_type" value="clustering" id="pt-clustering">
+        <span class="problem-icon">🔵</span>
+        <div class="problem-name">Clustering</div>
+        <div class="problem-desc">Find groups — no labels required</div>
+      </label>
+    </div>
+
+    <div id="target-section" style="max-width:400px;">
+      <div class="form-group">
+        <label for="target_column">Target Column <span style="color:var(--error)">*</span></label>
+        <select name="target_column" id="target_column">
+          <option value="">— Select target column —</option>
+          {% for col in columns %}
+          <option value="{{ col }}">{{ col }}</option>
+          {% endfor %}
+        </select>
+        <p style="font-size:0.72rem; color:var(--text-muted); margin-top:6px;">
+          Select the column you want to predict.
+        </p>
+      </div>
+    </div>
+
+    <div id="cluster-section" style="display:none; max-width:220px;">
+      <div class="form-group">
+        <label for="n_clusters">Number of Clusters (k)</label>
+        <input type="number" name="n_clusters" id="n_clusters" value="3" min="2" max="20">
+      </div>
+    </div>
+  </div>
+
+  <div class="wizard-nav">
+    <div></div>
+    <button type="button" class="btn btn-primary" onclick="wizardNext(1)">
+      Next: Preprocessing ⚙️ →
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     WIZARD PANEL 2 — Preprocessing (Step 3)
+     ══════════════════════════════════════════════ -->
+<div class="wizard-panel" data-panel="2">
+  <div class="card mb-4">
+    <div class="wizard-panel-header">
+      <span class="wizard-step-badge">Step 3</span>
+      <h2>Preprocessing</h2>
+      <p class="text-secondary" style="font-size:0.85rem; margin-top:4px;">Configure data cleaning and column-level transformations.</p>
+    </div>
+
+    <!-- Global Options -->
+    <div class="preprocess-section mt-4">
+      <div class="preprocess-section-title">🌐 Global Cleaning</div>
+      <div class="global-opts-grid">
+        {% set global_opts = [
+          ('remove_duplicates', 'Remove Duplicate Rows', true),
+          ('remove_constant', 'Remove Constant Columns', true),
+          ('remove_correlated', 'Remove Highly Correlated Cols', false),
+          ('remove_low_variance', 'Remove Low Variance Cols', false),
+          ('extract_datetime', 'Extract Datetime Features', true),
+        ] %}
+        {% for name, lbl, chk in global_opts %}
+        <label class="checkbox-item">
+          <input type="checkbox" name="{{ name }}" {% if chk %}checked{% endif %}>
+          <span style="font-size:0.82rem; font-weight:500;">{{ lbl }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Bulk apply -->
+    <div class="preprocess-section">
+      <div class="preprocess-section-title">⚡ Apply to All Columns</div>
+      <div class="bulk-apply-grid">
+        <div class="form-group" style="margin:0;">
+          <label>Numerical Missing</label>
+          <select id="apply-all-num-missing">
+            <option value="">— choose —</option>
+            <option value="mean">Fill with Mean</option>
+            <option value="median">Fill with Median</option>
+            <option value="mode">Fill with Mode</option>
+            <option value="drop">Drop Rows</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label>Numerical Scaling</label>
+          <select id="apply-all-num-scaling">
+            <option value="">— choose —</option>
+            <option value="standard">Standard Scaler</option>
+            <option value="minmax">MinMax Scaler</option>
+            <option value="robust">Robust Scaler</option>
+            <option value="none">No Scaling</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label>Categorical Encoding</label>
+          <select id="apply-all-cat-encoding">
+            <option value="">— choose —</option>
+            <option value="onehot">One-Hot Encoding</option>
+            <option value="label">Label Encoding</option>
+            <option value="frequency">Frequency Encoding</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Numerical Columns -->
+    {% set num_cols = col_stats | selectattr('inferred_type', 'equalto', 'numerical') | list %}
+    {% if num_cols %}
+    <div class="preprocess-section">
+      <div class="preprocess-section-title">
+        🔢 Numerical Features
+        <span class="badge badge-numerical" style="font-size:0.6rem; margin-left:6px;">{{ num_cols | length }} cols</span>
+      </div>
+      <div class="preprocess-col-grid">
+        {% for col in num_cols %}
+        <div class="preprocess-col-card">
+          <div class="preprocess-col-header">
+            <span class="preprocess-col-name">{{ col.name }}</span>
+            {% if col.missing > 0 %}<span class="badge badge-error" style="font-size:0.6rem;">{{ col.missing }} missing</span>{% endif %}
+          </div>
+          <div class="preprocess-col-body">
+            <input type="hidden" name="col_type_{{ col.name }}" value="numerical">
+            <div class="preprocess-options">
+              <div class="preprocess-option">
+                <label>Missing</label>
+                <select name="missing_num_{{ col.name }}">
+                  <option value="median">Median</option>
+                  <option value="mean">Mean</option>
+                  <option value="mode">Mode</option>
+                  <option value="drop">Drop</option>
+                </select>
+              </div>
+              <div class="preprocess-option">
+                <label>Scaling</label>
+                <select name="scaling_{{ col.name }}">
+                  <option value="standard">Standard</option>
+                  <option value="minmax">MinMax</option>
+                  <option value="robust">Robust</option>
+                  <option value="none">None</option>
+                </select>
+              </div>
+              <div class="preprocess-option">
+                <label>Transform</label>
+                <select name="transform_{{ col.name }}">
+                  <option value="none">None</option>
+                  <option value="log">Log (log1p)</option>
+                </select>
+              </div>
+              <div class="preprocess-option">
+                <label>Outliers</label>
+                <select name="outlier_{{ col.name }}">
+                  <option value="none">None</option>
+                  <option value="iqr">IQR Clip</option>
+                  <option value="zscore">Z-Score</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Categorical Columns -->
+    {% set cat_cols = col_stats | selectattr('inferred_type', 'equalto', 'categorical') | list %}
+    {% if cat_cols %}
+    <div class="preprocess-section">
+      <div class="preprocess-section-title">
+        🏷️ Categorical Features
+        <span class="badge badge-categorical" style="font-size:0.6rem; margin-left:6px;">{{ cat_cols | length }} cols</span>
+      </div>
+      <div class="preprocess-col-grid">
+        {% for col in cat_cols %}
+        <div class="preprocess-col-card">
+          <div class="preprocess-col-header">
+            <span class="preprocess-col-name">{{ col.name }}</span>
+            {% if col.missing > 0 %}<span class="badge badge-error" style="font-size:0.6rem;">{{ col.missing }} missing</span>{% endif %}
+            <span class="badge badge-categorical" style="font-size:0.58rem;">{{ col.unique }} unique</span>
+          </div>
+          <div class="preprocess-col-body">
+            <input type="hidden" name="col_type_{{ col.name }}" value="categorical">
+            <div class="preprocess-options">
+              <div class="preprocess-option">
+                <label>Missing</label>
+                <select name="missing_cat_{{ col.name }}">
+                  <option value="mode">Mode</option>
+                  <option value="drop">Drop</option>
+                </select>
+              </div>
+              <div class="preprocess-option">
+                <label>Encoding</label>
+                <select name="encoding_{{ col.name }}">
+                  <option value="onehot" {% if col.unique <= 30 %}selected{% endif %}>One-Hot</option>
+                  <option value="label" {% if col.unique > 30 %}selected{% endif %}>Label</option>
+                  <option value="frequency">Frequency</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="wizard-nav">
+    <button type="button" class="btn btn-ghost" onclick="wizardPrev(2)">← Back</button>
+    <button type="button" class="btn btn-primary" onclick="wizardNext(2)">
+      Next: Feature Selection 🔍 →
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     WIZARD PANEL 3 — Feature Selection (Step 4)
+     ══════════════════════════════════════════════ -->
+<div class="wizard-panel" data-panel="3">
+  <div class="card mb-4">
+    <div class="wizard-panel-header">
+      <span class="wizard-step-badge">Step 4</span>
+      <h2>Feature Selection</h2>
+      <p class="text-secondary" style="font-size:0.85rem; margin-top:4px;">Choose which features go into model training.</p>
+    </div>
+
+    <div class="form-group mt-4" style="max-width:300px;">
+      <label for="fs-mode">Selection Mode</label>
+      <select name="feature_selection_mode" id="fs-mode">
+        <option value="all">Use All Features</option>
+        <option value="manual">Manual Selection</option>
+        <option value="auto">Auto (Method-based)</option>
+      </select>
+    </div>
+
+    <div id="fs-manual" style="display:none; margin-top:16px;">
+      <div class="flex gap-2 mb-3">
+        <button type="button" id="select-all-features" class="btn btn-sm btn-ghost">✓ Select All</button>
+        <button type="button" id="deselect-all-features" class="btn btn-sm btn-ghost">✗ Deselect All</button>
+      </div>
+      <div class="checkbox-list">
+        {% for col in col_stats %}
+        <label class="checkbox-item">
+          <input type="checkbox" name="selected_features" value="{{ col.name }}" class="feature-checkbox" checked>
+          <span style="font-size:0.79rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;">{{ col.name }}</span>
+          <span class="badge badge-{{ col.inferred_type }}" style="font-size:0.58rem; flex-shrink:0;">{{ col.inferred_type[:3] }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div id="fs-auto" style="display:none; margin-top:16px;">
+      <div class="bulk-apply-grid">
+        <div class="form-group" style="margin:0;">
+          <label for="fs-method">Method</label>
+          <select name="feature_selection_method" id="fs-method">
+            <option value="none">None</option>
+            <option value="correlation">Correlation Filtering</option>
+            <option value="mutual_info">Mutual Information</option>
+            <option value="importance">Feature Importance (RF)</option>
+            <option value="variance">Variance Threshold</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label for="top-k">Top K Features</label>
+          <input type="number" name="top_k_features" id="top-k" placeholder="e.g. 10" min="1">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wizard-nav">
+    <button type="button" class="btn btn-ghost" onclick="wizardPrev(3)">← Back</button>
+    <button type="button" class="btn btn-primary" onclick="wizardNext(3)">
+      Next: Train / Test Split ✂️ →
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     WIZARD PANEL 4 — Train/Test Split (Step 5)
+     ══════════════════════════════════════════════ -->
+<div class="wizard-panel" data-panel="4">
+  <div class="card mb-4">
+    <div class="wizard-panel-header">
+      <span class="wizard-step-badge">Step 5</span>
+      <h2>Train / Test Split</h2>
+      <p class="text-secondary" style="font-size:0.85rem; margin-top:4px;">Configure how your data is split for training and evaluation.</p>
+    </div>
+
+    <div style="max-width:460px; margin-top:20px;">
+      <div class="range-group mb-5">
+        <label for="test-size-slider">Train / Test Split</label>
+        <input type="range" name="test_size" id="test-size-slider" min="0.1" max="0.4" step="0.05" value="0.2" style="--val:20%;">
+        <div class="range-labels">
+          <span id="test-size-label" style="font-weight:600; color:var(--accent-light);">80% train / 20% test</span>
+        </div>
+      </div>
+
+      <div class="bulk-apply-grid">
+        <div class="form-group" style="margin:0;">
+          <label for="cv-folds">Cross-Validation Folds</label>
+          <select name="cv_folds" id="cv-folds">
+            <option value="0" selected>No Cross-Validation (Faster)</option>
+            <option value="3">3-Fold CV</option>
+            <option value="5">5-Fold CV</option>
+            <option value="10">10-Fold CV</option>
+          </select>
+          <p style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;">CV adds training time. Disable for faster results.</p>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label>Options</label>
+          <label class="checkbox-item" style="padding:12px;">
+            <input type="checkbox" name="stratify" value="1">
+            <span style="font-size:0.82rem;">Stratified Split</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wizard-nav">
+    <button type="button" class="btn btn-ghost" onclick="wizardPrev(4)">← Back</button>
+    <button type="button" class="btn btn-primary" onclick="wizardNext(4)">
+      Next: Model Selection 🤖 →
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     WIZARD PANEL 5 — Model Selection (Step 6)
+     ══════════════════════════════════════════════ -->
+<div class="wizard-panel" data-panel="5">
+  <div class="card mb-4">
+    <div class="wizard-panel-header">
+      <div class="flex items-center justify-between" style="flex-wrap:wrap; gap:8px;">
+        <div>
+          <span class="wizard-step-badge">Step 6</span>
+          <h2 style="margin-top:4px;">Model Selection</h2>
+          <p class="text-secondary" style="font-size:0.85rem; margin-top:4px;">Select which models to train and compare.</p>
+        </div>
+        <label class="checkbox-item" style="border:none; padding:6px 10px; min-height:auto; margin:0;">
+          <input type="checkbox" id="select-all-models">
+          <span style="font-size:0.82rem; font-weight:600; white-space:nowrap;">Select All</span>
+        </label>
+      </div>
+    </div>
+
+    <div style="margin-top:8px;">
+      <p style="font-size:0.73rem; color:var(--text-muted); margin-bottom:12px;">
+        💡 Tip: Select 2–3 models for faster training. Add more for deeper comparison.
+      </p>
+    </div>
+
+    <!-- Classification Models -->
+    <div id="classification-models" style="margin-top:8px;">
+      <div class="model-section-label">Classification Models</div>
+      <div class="model-grid">
+        {% set cls_descs = {
+          'Logistic Regression': 'Fast linear classifier.',
+          'Decision Tree': 'Interpretable tree splits.',
+          'Random Forest': 'Ensemble of trees — robust.',
+          'XGBoost': 'Gradient boosting, best-in-class.',
+          'Gradient Boosting': 'sklearn gradient boosting.',
+          'KNN': 'Distance-based voting.',
+          'Naive Bayes': 'Probabilistic, fast.',
+          'SVM': 'Max-margin classifier.',
+        } %}
+        {% for model in classification_models %}
+        <div class="model-card {% if loop.index <= 3 %}selected{% endif %}">
+          <input type="checkbox" name="selected_models" value="{{ model }}" {% if loop.index <= 3 %}checked{% endif %}>
+          <div class="model-check"></div>
+          <div class="model-name">{{ model }}</div>
+          <div class="model-desc">{{ cls_descs.get(model, '') }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Regression Models -->
+    <div id="regression-models" style="display:none; margin-top:8px;">
+      <div class="model-section-label">Regression Models</div>
+      <div class="model-grid">
+        {% set reg_descs = {
+          'Linear Regression': 'OLS baseline.',
+          'Ridge Regression': 'L2-regularized linear.',
+          'Lasso Regression': 'L1 + feature selection.',
+          'Decision Tree Regressor': 'Non-linear tree.',
+          'Random Forest Regressor': 'Ensemble RF.',
+          'XGBoost Regressor': 'Top gradient boosting.',
+          'Gradient Boosting Regressor': 'sklearn GB fallback.',
+        } %}
+        {% for model in regression_models %}
+        <div class="model-card {% if loop.index <= 3 %}selected{% endif %}">
+          <input type="checkbox" name="selected_models" value="{{ model }}" {% if loop.index <= 3 %}checked{% endif %}>
+          <div class="model-check"></div>
+          <div class="model-name">{{ model }}</div>
+          <div class="model-desc">{{ reg_descs.get(model, '') }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Clustering Models -->
+    <div id="clustering-models" style="display:none; margin-top:8px;">
+      <div class="model-section-label">Clustering Models</div>
+      <div class="model-grid">
+        {% set clust_descs = {
+          'KMeans': 'Fast centroid-based.',
+          'DBSCAN': 'Density-based clustering.',
+          'Agglomerative Clustering': 'Hierarchical.',
+          'Gaussian Mixture': 'Probabilistic soft-cluster.',
+        } %}
+        {% for model in clustering_models %}
+        <div class="model-card {% if loop.index <= 2 %}selected{% endif %}">
+          <input type="checkbox" name="selected_models" value="{{ model }}" {% if loop.index <= 2 %}checked{% endif %}>
+          <div class="model-check"></div>
+          <div class="model-name">{{ model }}</div>
+          <div class="model-desc">{{ clust_descs.get(model, '') }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="wizard-nav">
+    <button type="button" class="btn btn-ghost" onclick="wizardPrev(5)">← Back</button>
+    <button type="submit" class="btn btn-primary btn-lg" id="train-btn">
+      🚀 Train Models
+    </button>
+  </div>
+</div>
+
+</form>
+
+<!-- Loading overlay shown on submit -->
+<div class="loading-overlay" id="training-overlay" style="display:none;">
+  <div class="spinner loading-spinner-lg"></div>
+  <h3>Training Models…</h3>
+  <p>Running your selected models. This may take 15–60 seconds.</p>
+  <p id="training-status-msg" style="color:var(--accent-light); font-weight:600;"></p>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ── Wizard Navigation ── */
+let currentPanel = 1;
+const TOTAL_PANELS = 5;
+
+function showPanel(n) {
+  document.querySelectorAll('.wizard-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.ws-step').forEach((s, i) => {
+    s.classList.toggle('active', i + 1 === n);
+    s.classList.toggle('done', i + 1 < n);
+  });
+  document.querySelectorAll('.ws-line').forEach((l, i) => {
+    l.classList.toggle('done', i + 1 < n);
+  });
+  
+  // Sync global sidebar and topbar
+  const globalStep = n + 1; // Wizard panel 1 is global step 2, etc.
+  
+  // Update Sidebar
+  document.querySelectorAll('.step-nav li').forEach((li, i) => {
+    const sNum = i + 1;
+    li.classList.toggle('completed', sNum < globalStep);
+    li.classList.toggle('active', sNum === globalStep);
+    li.classList.toggle('pending', sNum > globalStep);
+    const span = li.querySelector('.step-num');
+    if (span) span.textContent = sNum < globalStep ? '✓' : sNum;
+  });
+  
+  // Update Topbar dots
+  document.querySelectorAll('.pb-step').forEach((el, i) => {
+    const sNum = i + 1;
+    el.classList.toggle('done', sNum < globalStep);
+    el.classList.toggle('active', sNum === globalStep);
+    el.classList.toggle('pending', sNum > globalStep);
+    const dot = el.querySelector('.pb-dot');
+    if (dot) dot.textContent = sNum < globalStep ? '✓' : sNum;
+  });
+  
+  // Update Topbar lines
+  document.querySelectorAll('.pb-line').forEach((el, i) => {
+    const sNum = i + 1;
+    el.classList.toggle('done', sNum < globalStep);
+  });
+
+  const panel = document.querySelector(`.wizard-panel[data-panel="${n}"]`);
+  if (panel) {
+    panel.classList.add('active');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  currentPanel = n;
+}
+
+function wizardNext(from) {
+  // Validation for panel 1: require target column for non-clustering
+  if (from === 1) {
+    const pt = document.querySelector('input[name="problem_type"]:checked').value;
+    const target = document.getElementById('target_column').value;
+    if (pt !== 'clustering' && !target) {
+      showToast('Please select a target column before continuing.', 'error');
+      document.getElementById('target_column').focus();
+      return;
+    }
+  }
+  // Validation for panel 5: require at least 1 model
+  if (from === 5) {
+    const checked = document.querySelectorAll('input[name="selected_models"]:checked');
+    if (checked.length === 0) {
+      showToast('Please select at least one model.', 'error');
+      return;
+    }
+  }
+  if (from < TOTAL_PANELS) showPanel(from + 1);
+}
+
+function wizardPrev(from) {
+  if (from > 1) showPanel(from - 1);
+}
+
+function wizardJump(n) { showPanel(n); }
+
+function showToast(msg, type = 'info') {
+  const c = document.querySelector('.flash-container') || (() => {
+    const d = document.createElement('div');
+    d.className = 'flash-container';
+    document.body.prepend(d);
+    return d;
+  })();
+  const t = document.createElement('div');
+  t.className = `flash ${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+/* ── Problem Type toggle ── */
+function updateProblemType(val) {
+  document.getElementById('target-section').style.display = val === 'clustering' ? 'none' : '';
+  document.getElementById('cluster-section').style.display = val === 'clustering' ? '' : 'none';
+
+  const showCls = val === 'classification';
+  const showReg = val === 'regression';
+  const showClust = val === 'clustering';
+  document.getElementById('classification-models').style.display = showCls ? '' : 'none';
+  document.getElementById('regression-models').style.display = showReg ? '' : 'none';
+  document.getElementById('clustering-models').style.display = showClust ? '' : 'none';
+}
+
+document.querySelectorAll('.problem-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.problem-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    const val = card.querySelector('input[type="radio"]').value;
+    updateProblemType(val);
+  });
+});
+
+/* ── Feature Selection Mode ── */
+document.getElementById('fs-mode').addEventListener('change', function() {
+  document.getElementById('fs-manual').style.display = this.value === 'manual' ? '' : 'none';
+  document.getElementById('fs-auto').style.display = this.value === 'auto' ? '' : 'none';
+});
+
+document.getElementById('select-all-features')?.addEventListener('click', () => {
+  document.querySelectorAll('.feature-checkbox').forEach(cb => cb.checked = true);
+});
+document.getElementById('deselect-all-features')?.addEventListener('click', () => {
+  document.querySelectorAll('.feature-checkbox').forEach(cb => cb.checked = false);
+});
+
+/* ── Model card checkboxes ── */
+document.querySelectorAll('.model-card').forEach(card => {
+  card.addEventListener('click', (e) => {
+    if (e.target.tagName.toLowerCase() === 'input' && e.target.type === 'checkbox') {
+      card.classList.toggle('selected', e.target.checked);
+      return;
+    }
+    const cb = card.querySelector('input[type="checkbox"]');
+    if (cb) {
+      cb.checked = !cb.checked;
+      card.classList.toggle('selected', cb.checked);
+    }
+  });
+});
+
+document.getElementById('select-all-models')?.addEventListener('change', function() {
+  const active = document.querySelector('[id$="-models"]:not([style*="none"])');
+  if (active) {
+    active.querySelectorAll('.model-card input[type="checkbox"]').forEach(cb => {
+      cb.checked = this.checked;
+      cb.closest('.model-card').classList.toggle('selected', this.checked);
+    });
+  }
+});
+
+/* ── Train / test range slider ── */
+const slider = document.getElementById('test-size-slider');
+const sliderLabel = document.getElementById('test-size-label');
+if (slider) {
+  function updateSlider(v) {
+    const test = Math.round(v * 100);
+    const train = 100 - test;
+    sliderLabel.textContent = `${train}% train / ${test}% test`;
+    slider.style.setProperty('--val', `${test}%`);
+  }
+  slider.addEventListener('input', () => updateSlider(parseFloat(slider.value)));
+  updateSlider(parseFloat(slider.value));
+}
+
+/* ── Bulk apply dropdowns ── */
+document.getElementById('apply-all-num-missing')?.addEventListener('change', function() {
+  if (!this.value) return;
+  document.querySelectorAll('[name^="missing_num_"]').forEach(s => s.value = this.value);
+});
+document.getElementById('apply-all-num-scaling')?.addEventListener('change', function() {
+  if (!this.value) return;
+  document.querySelectorAll('[name^="scaling_"]').forEach(s => s.value = this.value);
+});
+document.getElementById('apply-all-cat-encoding')?.addEventListener('change', function() {
+  if (!this.value) return;
+  document.querySelectorAll('[name^="encoding_"]').forEach(s => s.value = this.value);
+});
+
+/* ── Training overlay ── */
+document.getElementById('configure-form').addEventListener('submit', function(e) {
+  const checked = document.querySelectorAll('input[name="selected_models"]:checked');
+  if (checked.length === 0) {
+    e.preventDefault();
+    showToast('Please select at least one model to train.', 'error');
+    return;
+  }
+  const overlay = document.getElementById('training-overlay');
+  overlay.style.display = 'flex';
+  const msgs = [
+    'Preprocessing data…',
+    'Building feature matrix…',
+    'Training models in parallel…',
+    'Evaluating performance…',
+    'Almost done…',
+  ];
+  let i = 0;
+  const el = document.getElementById('training-status-msg');
+  setInterval(() => {
+    if (el && i < msgs.length) el.textContent = msgs[i++];
+  }, 4000);
+});
+
+/* Initialize */
+updateProblemType('classification');
+</script>
+{% endblock %}

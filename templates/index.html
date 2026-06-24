@@ -1,118 +1,257 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>AutoML Studio</title>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
+{% extends "base.html" %}
+{% set current_step = 1 %}
 
-<div class="container">
+{% block title %}Upload Dataset{% endblock %}
+{% block meta_description %}Upload any CSV dataset to start the AutoML pipeline — analyze, preprocess, train, and predict.{% endblock %}
 
-    <!-- PRIMARY ACTION: UPLOAD FIRST -->
-    <div class="card">
-        <h1>AutoML Studio</h1>
-        <p>
-            Upload your CSV file to automatically train, evaluate,
-            and understand a machine learning model.
-        </p>
+{% block content %}
+<div class="hero">
+  <div class="hero-badge">
+    <span>⚡</span> End-to-End AutoML Platform
+  </div>
 
-        <form action="/upload" method="POST" enctype="multipart/form-data">
-            <label>Select CSV file</label>
-            <input type="file" name="dataset" required>
-            <button type="submit">Upload Dataset</button>
-        </form>
+  <h1><span class="gradient-text">Train Models,</span><br>Not Pipelines.</h1>
+  <p>Upload any CSV dataset and go from raw data to a trained ML model in minutes — with full transparency over every step.</p>
+
+  <!--
+    ╔══════════════════════════════════════════════════════════════╗
+    ║  ROOT CAUSE FIX                                             ║
+    ║  Previously: input[type=file] had position:absolute;inset:0 ║
+    ║  covering the ENTIRE drop-zone INCLUDING the submit button, ║
+    ║  intercepting every click on the button.                    ║
+    ║                                                             ║
+    ║  Fix: the submit button is now OUTSIDE the .drop-zone div.  ║
+    ║  The .file-input-overlay covers only the drop-zone area.    ║
+    ║  The button has normal z-index and receives clicks cleanly. ║
+    ╚══════════════════════════════════════════════════════════════╝
+  -->
+
+  <form action="/upload" method="POST" enctype="multipart/form-data" id="upload-form" novalidate>
+    <div class="upload-area">
+
+      <!-- Drop Zone: visual target + hidden file input overlay -->
+      <div class="drop-zone" id="drop-zone" role="button" tabindex="0"
+           aria-label="Click or drag to upload a CSV file">
+
+        <!-- The file input covers ONLY this drop-zone area, NOT the button below -->
+        <input
+          type="file"
+          name="dataset"
+          accept=".csv"
+          id="file-input"
+          class="file-input-overlay"
+          aria-label="Choose CSV file"
+          tabindex="-1"
+        >
+
+        <span class="drop-zone-icon" id="dz-icon" aria-hidden="true">📂</span>
+        <p class="drop-zone-text" id="dz-text">Drag &amp; drop your CSV file here</p>
+        <p class="drop-zone-sub">or click anywhere above to browse</p>
+
+        <!-- File selected confirmation (shown inside zone) -->
+        <div class="file-name-display" id="file-name-display" role="status">
+          <span>✅</span>
+          <span id="file-name-text">Ready to analyze</span>
+        </div>
+      </div>
+
+      <!-- Error message (hidden by default) -->
+      <div id="upload-error"
+           role="alert"
+           style="display:none; padding:12px 16px; background:var(--error-bg);
+                  border:1px solid var(--error-border); border-radius:var(--radius-md);
+                  font-size:0.85rem; color:#fca5a5; display:none;">
+        ⚠️ <span id="upload-error-text">Please select a valid CSV file.</span>
+      </div>
+
+      <!-- ✅ SUBMIT BUTTON — outside the drop-zone, unobstructed -->
+      <button
+        type="submit"
+        id="upload-btn"
+        class="btn btn-primary btn-xl upload-submit-btn"
+        disabled
+        aria-disabled="true"
+        style="opacity:0.45; cursor:not-allowed;"
+      >
+        <span id="upload-btn-icon">🚀</span>
+        <span id="upload-btn-text">Analyze Dataset</span>
+      </button>
+
+      <p style="font-size:0.72rem; color:var(--text-muted); text-align:center;">
+        CSV files only · up to 100 MB · your data never leaves your machine
+      </p>
+
     </div>
-
-    <!-- WHAT IT IS -->
-    <div class="card">
-        <h2>What is AutoML Studio?</h2>
-        <p>
-            AutoML Studio is an intelligent machine learning application that
-            automatically builds models from your data while clearly explaining
-            every step involved.
-        </p>
-    </div>
-
-    <!-- WHAT IT DOES -->
-    <div class="card">
-        <h2>What this application does</h2>
-
-        <ul>
-            <li>📁 Accepts any CSV dataset</li>
-            <li>🎯 Lets you select the target column</li>
-            <li>🤖 Automatically detects the problem type:
-                <ul>
-                    <li>Regression (continuous values)</li>
-                    <li>Classification (categories / labels)</li>
-                </ul>
-            </li>
-            <li>🧠 Selects the appropriate Random Forest model</li>
-            <li>📊 Trains and evaluates the model</li>
-            <li>🔍 Explains preprocessing and feature importance</li>
-            <li>✍️ Allows manual prediction using the trained model</li>
-        </ul>
-    </div>
-
-    <!-- WHY TRUST -->
-    <div class="card">
-        <h2>Why AutoML Studio is trustworthy</h2>
-
-        <ul>
-            <li>✅ No black-box behavior</li>
-            <li>✅ Every preprocessing step is shown</li>
-            <li>✅ Model choice is explained</li>
-            <li>✅ Feature importance is visualized</li>
-            <li>✅ Designed for correctness over hype</li>
-        </ul>
-    </div>
-
-    <!-- SUPPORTED PROBLEMS -->
-    <div class="card">
-        <h2>Supported problem types</h2>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Problem Type</th>
-                    <th>Status</th>
-                    <th>Examples</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Regression</td>
-                    <td>✅ Supported</td>
-                    <td>Price, visibility, sales, temperature</td>
-                </tr>
-                <tr>
-                    <td>Classification</td>
-                    <td>✅ Supported</td>
-                    <td>Spam detection, medical diagnosis</td>
-                </tr>
-                <tr>
-                    <td>Clustering</td>
-                    <td>❌ Not supported</td>
-                    <td>Planned for future versions</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- HOW IT WORKS -->
-    <div class="card">
-        <h2>How it works</h2>
-
-        <ol>
-            <li>Upload a CSV file</li>
-            <li>Review dataset summary</li>
-            <li>Select the target column</li>
-            <li>Model is trained automatically</li>
-            <li>Review metrics, steps, and feature importance</li>
-            <li>Run manual predictions</li>
-        </ol>
-    </div>
-
+  </form>
 </div>
 
-</body>
-</html>
+<!-- Feature grid -->
+<div class="feature-grid" style="max-width:960px; margin:0 auto;">
+  <div class="feature-card">
+    <span class="feature-icon">🔧</span>
+    <h3>Full Preprocessing Control</h3>
+    <p>Imputation, scaling, encoding, and outlier removal — configured per column, not as a black box.</p>
+  </div>
+  <div class="feature-card">
+    <span class="feature-icon">🤖</span>
+    <h3>7+ ML Models</h3>
+    <p>Classification, Regression, and Clustering. Train all, compare side by side, pick the best.</p>
+  </div>
+  <div class="feature-card">
+    <span class="feature-icon">📊</span>
+    <h3>Rich Results Dashboard</h3>
+    <p>F1, ROC-AUC, confusion matrix, feature importance, and correlation heatmaps.</p>
+  </div>
+  <div class="feature-card">
+    <span class="feature-icon">🎯</span>
+    <h3>Batch &amp; Manual Predictions</h3>
+    <p>Upload a CSV for batch inference or fill a form for single-row predictions with probabilities.</p>
+  </div>
+  <div class="feature-card">
+    <span class="feature-icon">📦</span>
+    <h3>Full Export Suite</h3>
+    <p>Download model (.pkl), preprocessing pipeline, predictions CSV, and a PDF report.</p>
+  </div>
+  <div class="feature-card">
+    <span class="feature-icon">🔍</span>
+    <h3>Feature Selection</h3>
+    <p>Correlation, mutual information, and feature-importance based automatic selection.</p>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  const form        = document.getElementById('upload-form');
+  const dropZone    = document.getElementById('drop-zone');
+  const fileInput   = document.getElementById('file-input');
+  const fileDisplay = document.getElementById('file-name-display');
+  const fileText    = document.getElementById('file-name-text');
+  const uploadBtn   = document.getElementById('upload-btn');
+  const uploadBtnTxt= document.getElementById('upload-btn-text');
+  const errBox      = document.getElementById('upload-error');
+  const errText     = document.getElementById('upload-error-text');
+  const dzIcon      = document.getElementById('dz-icon');
+  const dzText      = document.getElementById('dz-text');
+
+  // ── Validate & update UI after file selected ──
+  function handleFileSelected(file) {
+    errBox.style.display = 'none';
+
+    if (!file) {
+      resetUI();
+      return;
+    }
+
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      showError('Only CSV files are accepted. Please select a .csv file.');
+      fileInput.value = '';
+      resetUI();
+      return;
+    }
+
+    if (file.size > 100 * 1024 * 1024) {
+      showError('File is too large. Maximum size is 100 MB.');
+      fileInput.value = '';
+      resetUI();
+      return;
+    }
+
+    // File is valid — update UI
+    dzIcon.textContent = '✅';
+    dzText.textContent = 'File ready!';
+    fileText.textContent = file.name + ' (' + formatBytes(file.size) + ')';
+    fileDisplay.classList.add('visible');
+    dropZone.classList.add('file-selected');
+
+    // Enable submit button
+    uploadBtn.disabled = false;
+    uploadBtn.removeAttribute('aria-disabled');
+    uploadBtn.style.opacity = '';
+    uploadBtn.style.cursor = '';
+  }
+
+  function resetUI() {
+    dzIcon.textContent = '📂';
+    dzText.textContent = 'Drag & drop your CSV file here';
+    fileDisplay.classList.remove('visible');
+    dropZone.classList.remove('file-selected');
+    uploadBtn.disabled = true;
+    uploadBtn.setAttribute('aria-disabled', 'true');
+    uploadBtn.style.opacity = '0.45';
+    uploadBtn.style.cursor = 'not-allowed';
+  }
+
+  function showError(msg) {
+    errText.textContent = msg;
+    errBox.style.display = 'flex';
+  }
+
+  function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+  }
+
+  // ── File input change ──
+  fileInput.addEventListener('change', () => {
+    handleFileSelected(fileInput.files[0] || null);
+  });
+
+  // ── Drag and drop handlers ──
+  ['dragenter', 'dragover'].forEach(evt => {
+    dropZone.addEventListener(evt, e => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.add('drag-over');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach(evt => {
+    dropZone.addEventListener(evt, e => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.remove('drag-over');
+    });
+  });
+
+  dropZone.addEventListener('drop', e => {
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      // Inject file into input
+      try {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        fileInput.files = dt.files;
+      } catch (ex) {
+        // DataTransfer not supported in all browsers — show toast
+        showToast('Drag-drop not supported in this browser. Please click to browse.', 'info');
+        return;
+      }
+      handleFileSelected(file);
+    }
+  });
+
+  // ── Form submit: show loading overlay ──
+  form.addEventListener('submit', e => {
+    if (!fileInput.files || !fileInput.files[0]) {
+      e.preventDefault();
+      showError('Please select a CSV file before analyzing.');
+      return;
+    }
+
+    uploadBtnTxt.textContent = 'Analyzing...';
+    uploadBtn.disabled = true;
+
+    showLoading(
+      'Analyzing your dataset...',
+      'This usually takes a few seconds'
+    );
+  });
+})();
+</script>
+{% endblock %}

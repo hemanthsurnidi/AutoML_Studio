@@ -1,51 +1,168 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Dataset Overview</title>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
+{% extends "base.html" %}
+{% set current_step = 2 %}
 
-<div class="container">
-    <h1>Dataset Overview</h1>
+{% block title %}Dataset Overview{% endblock %}
 
-    <p><b>Rows:</b> {{ rows }} &nbsp;&nbsp; | &nbsp;&nbsp; <b>Columns:</b> {{ cols }}</p>
+{% block content %}
 
-    <h2>Column Summary</h2>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Column</th>
-                <th>Data Type</th>
-                <th>Missing Values</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for col in summary %}
-            <tr>
-                <td>{{ col.name }}</td>
-                <td>{{ col.dtype }}</td>
-                <td>{{ col.missing }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <h2>Select Target Column</h2>
-
-    <form action="/select_target" method="post">
-        <select name="target" required>
-            <option value="">-- Select Target Column --</option>
-            {% for c in columns %}
-                <option value="{{ c }}">{{ c }}</option>
-            {% endfor %}
-        </select>
-
-        <br><br>
-        <button type="submit">Train Model</button>
-    </form>
+<!-- ══ Success Banner ══ -->
+<div class="upload-success-banner visible" id="success-banner" role="status">
+  <span class="banner-icon">✅</span>
+  <div>
+    <p style="color:var(--success); font-weight:700; margin-bottom:2px;">Dataset analyzed successfully!</p>
+    <p style="color:var(--text-secondary); font-size:0.78rem; font-weight:400;">
+      Review the summary below, then click <strong>Configure Pipeline</strong> to continue.
+    </p>
+  </div>
+  <button onclick="document.getElementById('success-banner').style.display='none'"
+          style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;flex-shrink:0;padding:4px;"
+          aria-label="Dismiss">✕</button>
 </div>
 
-</body>
-</html>
+<!-- ══ Page Header ══ -->
+<div class="page-header-row mt-4">
+  <div>
+    <h1>Dataset <span class="gradient-text">Overview</span></h1>
+    <p>
+      <strong style="color:var(--accent-light);">{{ original_filename }}</strong>
+      &nbsp;·&nbsp; Uploaded successfully
+    </p>
+  </div>
+  <div class="page-actions">
+    <a href="/" class="btn btn-ghost btn-sm">← Re-upload</a>
+    <a href="/configure" class="btn btn-primary" id="next-btn">
+      Configure Pipeline →
+    </a>
+  </div>
+</div>
+
+<!-- ══ Stats ══ -->
+<div class="stat-row">
+  <div class="stat-box">
+    <div class="val">{{ "{:,}".format(rows) }}</div>
+    <div class="lbl">Rows</div>
+  </div>
+  <div class="stat-box">
+    <div class="val">{{ cols }}</div>
+    <div class="lbl">Columns</div>
+  </div>
+  <div class="stat-box">
+    <div class="val"
+         style="color:{% if summary | selectattr('missing', 'gt', 0) | list | length > 0 %}var(--warning){% else %}var(--success){% endif %};">
+      {{ summary | selectattr('missing', 'gt', 0) | list | length }}
+    </div>
+    <div class="lbl">Cols w/ Missing</div>
+  </div>
+  <div class="stat-box">
+    <div class="val"
+         style="color:{% if duplicate_count > 0 %}var(--warning){% else %}var(--success){% endif %};">
+      {{ "{:,}".format(duplicate_count) }}
+    </div>
+    <div class="lbl">Duplicate Rows</div>
+  </div>
+</div>
+
+<!-- ══ Column Summary ══ -->
+<div class="card mb-6">
+  <h2 class="mb-4">Column Summary</h2>
+  <span class="table-scroll-hint">← Scroll to see all columns →</span>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Column</th>
+          <th>Dtype</th>
+          <th>Type</th>
+          <th>Missing</th>
+          <th>Unique</th>
+          <th>Samples</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for col in summary %}
+        <tr>
+          <td style="color:var(--text-muted);">{{ loop.index }}</td>
+          <td style="color:var(--text-primary); font-weight:600; max-width:140px;">{{ col.name }}</td>
+          <td><code style="font-size:0.75rem; color:var(--info);">{{ col.dtype }}</code></td>
+          <td><span class="badge badge-{{ col.inferred_type }}">{{ col.inferred_type }}</span></td>
+          <td>
+            {% if col.missing > 0 %}
+              <span style="color:var(--warning);">{{ col.missing }} <span style="color:var(--text-muted); font-size:0.72rem;">({{ col.missing_pct }}%)</span></span>
+            {% else %}
+              <span style="color:var(--success);">None</span>
+            {% endif %}
+          </td>
+          <td>{{ col.unique }}</td>
+          <td style="color:var(--text-muted); font-size:0.75rem; max-width:180px;">
+            {{ col.sample | join(', ') }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ Data Preview ══ -->
+<div class="card mb-6">
+  <div class="flex items-center justify-between mb-4" style="flex-wrap:wrap; gap:8px;">
+    <h2>Data Preview</h2>
+    <span class="badge badge-accent">First 20 rows</span>
+  </div>
+  <span class="table-scroll-hint">← Scroll horizontally to see all columns →</span>
+  <div class="table-wrap" style="max-height:320px; overflow-y:auto;">
+    <table>
+      <thead style="position:sticky; top:0; z-index:2;">
+        <tr>
+          <th style="background:rgba(124,111,255,0.15);">#</th>
+          {% for col in preview_cols %}
+          <th style="background:rgba(124,111,255,0.15);">{{ col }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in preview_rows %}
+        <tr>
+          <td style="color:var(--text-muted); font-size:0.72rem;">{{ loop.index }}</td>
+          {% for col in preview_cols %}
+          <td>{{ row[col] if row[col] is not none else '<span style="color:var(--text-muted);">NaN</span>' | safe }}</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ Proceed Card ══ -->
+<div class="card card-accent" style="text-align:center; padding:28px 20px;" id="next-step-card">
+  <div style="font-size:2rem; margin-bottom:12px;">🎯</div>
+  <h2 class="mb-2">Ready to Configure?</h2>
+  <p class="text-secondary mb-6" style="font-size:0.88rem; max-width:380px; margin-left:auto; margin-right:auto;">
+    Dataset looks good! Proceed to set your problem type, preprocessing options, and select ML models.
+  </p>
+  <a href="/configure" class="btn btn-primary btn-lg" style="min-width:220px;">
+    ⚙️ Configure Pipeline →
+  </a>
+  <p class="text-muted mt-3" style="font-size:0.75rem;">
+    Steps 2–6: Problem type → Preprocessing → Feature selection → Model training
+  </p>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-scroll to the next-step card after a brief delay to show the page has loaded
+window.addEventListener('load', () => {
+  // Show a welcome toast
+  showToast('Dataset analyzed — {{ rows }} rows × {{ cols }} columns', 'success', 5000);
+
+  // Scroll next-step card into view after 1.5s
+  setTimeout(() => {
+    document.getElementById('next-step-card')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 1500);
+});
+</script>
+{% endblock %}
