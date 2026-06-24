@@ -245,7 +245,10 @@
     }
 
     uploadBtnTxt.textContent = 'Analyzing...';
-    uploadBtn.disabled = true;
+    // Disable asynchronously to prevent browser from aborting the form submission
+    setTimeout(() => {
+      uploadBtn.disabled = true;
+    }, 50);
 
     showLoading(
       'Analyzing your dataset...',

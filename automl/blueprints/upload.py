@@ -73,7 +73,8 @@ def upload():
     preview_rows = df.head(20).fillna("").astype(str).to_dict(orient="records")
     preview_cols = df.columns.tolist()
 
-    duplicate_count = int(df.duplicated().sum())
+    # Skip expensive duplicate calculation on upload to prevent timeouts
+    duplicate_count = 0
 
     # Create new session
     sid = new_session()
@@ -110,7 +111,7 @@ def debug_upload():
         return f"Could not read sample.csv: {e}", 500
 
     col_types = infer_column_types(df)
-    duplicate_count = int(df.duplicated().sum())
+    duplicate_count = 0
 
     sid = new_session()
     session["sid"] = sid
@@ -164,7 +165,7 @@ def dataset_info():
 
     preview_rows = df.head(20).fillna("").astype(str).to_dict(orient="records")
     preview_cols = df.columns.tolist()
-    duplicate_count = state.get("duplicate_count", int(df.duplicated().sum()))
+    duplicate_count = state.get("duplicate_count", 0)
 
     return render_template(
         "dataset_info.html",
