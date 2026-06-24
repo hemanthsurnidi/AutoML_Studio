@@ -279,6 +279,8 @@ def get_output_feature_names(ct: ColumnTransformer, df_cols) -> List[str]:
     return names
 
 
+import warnings
+
 def infer_column_types(df: pd.DataFrame) -> Dict[str, str]:
     """
     Auto-detect column types for each column.
@@ -289,13 +291,17 @@ def infer_column_types(df: pd.DataFrame) -> Dict[str, str]:
         if df[col].dtype in [np.int64, np.float64, np.int32, np.float32, "int64", "float64"]:
             type_map[col] = "numerical"
         elif df[col].dtype == "object":
-            # Try datetime detection
             sample = df[col].dropna().head(50)
-            try:
-                pd.to_datetime(sample)
-                type_map[col] = "datetime"
-            except Exception:
+            if sample.empty:
                 type_map[col] = "categorical"
+                continue
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                parsed = pd.to_datetime(sample, errors='coerce')
+                if parsed.notna().sum() > len(sample) * 0.8:
+                    type_map[col] = "datetime"
+                else:
+                    type_map[col] = "categorical"
         elif str(df[col].dtype).startswith("datetime"):
             type_map[col] = "datetime"
         else:
