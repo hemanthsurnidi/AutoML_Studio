@@ -48,5 +48,6 @@ def _path(sid: str) -> str:
 
 
 def _write(sid: str, state: dict):
+    os.makedirs(Config.SESSION_FOLDER, exist_ok=True)
     with open(_path(sid), "w", encoding="utf-8") as f:
         json.dump(state, f, default=str)
