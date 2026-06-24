@@ -45,17 +45,18 @@ except ImportError:
 
 def get_classification_models() -> Dict[str, Any]:
     models = {
-        "Logistic Regression": LogisticRegression(max_iter=500, random_state=42),
+        "Logistic Regression": LogisticRegression(max_iter=500, random_state=42, n_jobs=-1),
         "Decision Tree": DecisionTreeClassifier(max_depth=8, random_state=42),
-        "Random Forest": RandomForestClassifier(n_estimators=50, max_depth=8, random_state=42),
-        "KNN": KNeighborsClassifier(n_neighbors=5),
+        "Random Forest": RandomForestClassifier(n_estimators=50, max_depth=8, random_state=42, n_jobs=-1),
+        "KNN": KNeighborsClassifier(n_neighbors=5, n_jobs=-1),
         "Naive Bayes": GaussianNB(),
-        "SVM": SVC(probability=True, random_state=42, max_iter=2000, cache_size=200),
+        "SVM": SVC(probability=True, random_state=42, max_iter=2000, cache_size=500),
     }
     if XGBOOST_AVAILABLE:
         models["XGBoost"] = XGBClassifier(
             n_estimators=50, max_depth=5, random_state=42,
-            eval_metric="logloss", verbosity=0, tree_method="hist"
+            eval_metric="logloss", verbosity=0, tree_method="hist",
+            n_jobs=-1
         )
     else:
         models["Gradient Boosting"] = GradientBoostingClassifier(n_estimators=50, max_depth=4, random_state=42)
@@ -64,16 +65,16 @@ def get_classification_models() -> Dict[str, Any]:
 
 def get_regression_models() -> Dict[str, Any]:
     models = {
-        "Linear Regression": LinearRegression(),
+        "Linear Regression": LinearRegression(n_jobs=-1),
         "Ridge Regression": Ridge(alpha=1.0),
         "Lasso Regression": Lasso(alpha=1.0, max_iter=2000),
         "Decision Tree Regressor": DecisionTreeRegressor(max_depth=8, random_state=42),
-        "Random Forest Regressor": RandomForestRegressor(n_estimators=50, max_depth=8, random_state=42),
+        "Random Forest Regressor": RandomForestRegressor(n_estimators=50, max_depth=8, random_state=42, n_jobs=-1),
     }
     if XGBOOST_AVAILABLE:
         models["XGBoost Regressor"] = XGBRegressor(
             n_estimators=50, max_depth=5, random_state=42,
-            verbosity=0, tree_method="hist"
+            verbosity=0, tree_method="hist", n_jobs=-1
         )
     else:
         models["Gradient Boosting Regressor"] = GradientBoostingRegressor(n_estimators=50, max_depth=4, random_state=42)
