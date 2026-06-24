@@ -1,3 +1,13 @@
+---
+title: AutoML Studio
+emoji: 🚀
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+app_file: app.py
+pinned: false
+---
+
 # AutoML Studio
 
 AutoML Studio is a comprehensive, web-based machine learning application that allows users to automatically build, configure, evaluate, and export machine learning models from tabular CSV datasets. The project is designed with a strong focus on customizability, beautiful UI/UX, and explainability.
