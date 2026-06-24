@@ -13,20 +13,25 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -m -u 1000 user
 USER user
 
+# Ensure the local bin is on the PATH for gunicorn
+ENV PATH="/home/user/.local/bin:${PATH}"
+
 # Copy requirements and install dependencies
 # We use --user so it installs to /home/user/.local/bin
 COPY --chown=user:user requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
-# Ensure the local bin is on the PATH for gunicorn
-ENV PATH="/home/user/.local/bin:${PATH}"
-
 # Copy all the application files
 COPY --chown=user:user . /app
 
-# Ensure runtime directories exist and are writable
+# Switch to root temporarily to create directories and fix permissions
+USER root
 RUN mkdir -p /app/sessions /app/uploads /app/saved_models && \
-    chmod 777 /app/sessions /app/uploads /app/saved_models
+    chown -R user:user /app/sessions /app/uploads /app/saved_models && \
+    chmod -R 777 /app/sessions /app/uploads /app/saved_models
+
+# Switch back to the required non-root user
+USER user
 
 # Expose port 7860 (Hugging Face Default)
 EXPOSE 7860
